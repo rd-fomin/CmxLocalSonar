@@ -7,12 +7,14 @@ import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiType;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 public class NullableInspection extends AbstractBaseJavaLocalInspectionTool {
@@ -25,10 +27,11 @@ public class NullableInspection extends AbstractBaseJavaLocalInspectionTool {
         var holder = new ProblemsHolder(manager, file, isOnTheFly);
         var hasNullable = Arrays.stream(method.getAnnotations()).map(PsiAnnotation::getText).anyMatch(NULLABLE::equals);
         var hasNotNull = Arrays.stream(method.getAnnotations()).map(PsiAnnotation::getText).anyMatch(NOT_NULL::equals);
-        if ("void".equals(method.getReturnType().getCanonicalText())) {
+        var isVoid = Optional.ofNullable(method.getReturnType()).map(PsiType::getCanonicalText).filter("void"::equals);
+        if (isVoid.isPresent()) {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        if (!"void".equals(method.getReturnType().getCanonicalText()) && (hasNullable || hasNotNull)) {
+        if (hasNullable || hasNotNull) {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         holder.registerProblem(
